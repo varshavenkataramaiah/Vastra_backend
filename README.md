@@ -1,70 +1,80 @@
-# Getting Started with Create React App
+# Vastra Backend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Express and MongoDB API for the Vastra storefront.
 
-## Available Scripts
+## Requirements
 
-In the project directory, you can run:
+- Node.js
+- MongoDB running locally on `127.0.0.1:27017`
 
-### `npm start`
+## Setup
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Install dependencies:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+npm install
+```
 
-### `npm test`
+Create `.env` in this directory:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```env
+PORT=5001
+MONGODB_URI=mongodb://127.0.0.1:27017/vastra
+JWT_SECRET=replace-with-a-long-random-secret
+RAZORPAY_KEY_ID=your-razorpay-key-id
+RAZORPAY_KEY_SECRET=your-razorpay-key-secret
+ADMIN_EMAILS=admin@example.com
+```
 
-### `npm run build`
+Start the API:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm start
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+The default health check is available at `http://localhost:5001/api/health`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+To seed products into an empty database, call:
 
-### `npm run eject`
+```bash
+curl http://localhost:5001/api/products/seed
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Scripts
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- `npm start` starts the production-style Node server.
+- `npm run dev` starts the server with Nodemon.
+- `npm test` runs backend tests.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## API Overview
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Public endpoints:
 
-## Learn More
+- `GET /api/health`
+- `GET /api/products`
+- `GET /api/products/:id`
+- `GET /api/products/seed`
+- `POST /api/users/register`
+- `POST /api/users/login`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Authenticated endpoints require `Authorization: Bearer <token>`:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- `GET /api/users/me`
+- `PUT /api/users/me`
+- `GET /api/users/me/preferences`
+- `PUT /api/users/me/preferences`
+- `GET /api/orders`
+- `GET /api/orders/:id`
+- `POST /api/orders/checkout`
 
-### Code Splitting
+Admin product management requires a logged-in user whose email is listed in `ADMIN_EMAILS`:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- `POST /api/products`
+- `PUT /api/products/:id`
+- `DELETE /api/products/:id`
+- `GET /api/orders/admin/all`
+- `PATCH /api/orders/admin/:id/status`
 
-### Analyzing the Bundle Size
+For card or UPI checkout, configure both Razorpay variables. The frontend requests a server-created Razorpay order, and the backend verifies its signature and amount before saving the paid order. Cash on delivery does not require Razorpay configuration.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Checkout prices and totals are calculated from MongoDB. Product stock is reserved when an order is created and restored if order creation fails.
